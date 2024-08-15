@@ -1,31 +1,47 @@
 import { useState, useEffect } from 'react';
 
-function App() {
-  const [messages, setMessages] = useState([]);
+function App(): JSX.Element {
+  const [messages, setMessages] = useState<string[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [ws, setWs] = useState(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:3000');
-    setWs(ws);
+    const wsInstance = new WebSocket('ws://localhost:3000');
+    setWs(wsInstance);
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+    const decoder = new TextDecoder('utf-8');
+
+    wsInstance.onmessage = (event) => {
+      let message: string;
+      if (typeof event.data === 'string') {
+        message = event.data;
+      } else if (event.data instanceof Buffer) {
+        message = decoder.decode(Buffer.from(event.data).buffer);
+      } else {
+        if (event.data instanceof ArrayBuffer) {
+          message = decoder.decode(event.data);
+        } else {
+          message = decoder.decode(Buffer.concat(event.data).buffer);
+        }
+      }
+
+      const data = JSON.parse(message);
+
       if (data.type === 'messages') {
         setMessages(data.data);
       }
     };
 
-    ws.onopen = () => {
+    wsInstance.onopen = () => {
       console.log('Conectado al servidor');
     };
 
-    ws.onclose = () => {
+    wsInstance.onclose = () => {
       console.log('Desconectado del servidor');
     };
 
     return () => {
-      ws.close();
+      wsInstance.close();
     };
   }, []);
 
@@ -47,7 +63,7 @@ function App() {
       <input
         type="text"
         value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
+        onChange={(e) => setNewMessage((e.target as HTMLInputElement).value)}
       />
       <button onClick={handleSendMessage}>Enviar</button>
     </div>

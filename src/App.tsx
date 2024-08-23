@@ -9,22 +9,9 @@ function App(): JSX.Element {
     const wsInstance = new WebSocket('ws://localhost:3000');
     setWs(wsInstance);
 
-    const decoder = new TextDecoder('utf-8');
-
-    wsInstance.onmessage = (event) => {
+    wsInstance.onmessage = (event: MessageEvent) => {
       let message: string;
-      if (typeof event.data === 'string') {
-        message = event.data;
-      } else if (event.data instanceof Buffer) {
-        message = decoder.decode(Buffer.from(event.data).buffer);
-      } else {
-        if (event.data instanceof ArrayBuffer) {
-          message = decoder.decode(event.data);
-        } else {
-          message = decoder.decode(Buffer.concat(event.data).buffer);
-        }
-      }
-
+      message = event.data;
       const data = JSON.parse(message);
 
       if (data.type === 'messages') {
